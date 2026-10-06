@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            libglfw3-dev \
+            libgl1-mesa-dev \
+            libassimp-dev \
+            libglm-dev
+      
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build
+        run: cmake --build build --config Release -j$(nproc)
+      
+      - name: Test executable exists
+        run: test -f build/3DGame
+
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install dependencies
+        run: |
+          brew install cmake glfw glm assimp
+      
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build
+        run: cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+      
+      - name: Test executable exists
+        run: test -f build/3DGame
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install dependencies
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          # GLFW, GLM, Assimp via vcpkg or manual
+      
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 17 2022" -A x64
+      
+      - name: Build
+        run: cmake --build build --config Release -j
+      
+      - name: Test executable exists
+        run: test -f build/Release/3DGame.exe
+
+  build-web:
+    name: Build Web (Emscripten)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: latest
+      
+      - name: Configure CMake for Web
+        run: |
+          source $EMSDK/emsdk_env.sh
+          emcmake cmake -B build_web -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+      
+      - name: Build for Web
+        run: |
+          source $EMSDK/emsdk_env.sh
+          emmake cmake --build build_web --config Release -j$(nproc)
+      
+      - name: Upload Web Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build_web/
+          retention-days: 7
