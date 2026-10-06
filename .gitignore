@@ -1,0 +1,28 @@
+# Build
+build/
+cmake-build-*/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Assets (download separately)
+assets/*.obj
+assets/*.mtl
+assets/*.png
+assets/*.jpg
+assets/*.png
+assets/*.dds
